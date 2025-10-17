@@ -37,12 +37,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Параметры: trim($_POST['username']), trim($_POST['password']).
         $username = trim($_POST['username']);
         $password = trim($_POST['password']);
+        $email = trim($_POST['email']);
 
         // Валидация: Проверяет username на буквы/цифры и заполненность полей.
         // Параметры: preg_match('/^[a-zA-Z0-9]+$/', $username).
         if (!preg_match('/^[a-zA-Z0-9]+$/', $username)) {
             $error = "Имя пользователя должно содержать только буквы и цифры.";
-        } elseif (empty($username) || empty($password)) {
+        } elseif (empty($username) || empty($password)|| empty($email)) {
             $error = "Заполните все поля.";
         } else {
             // Проверка уникальности: Проверяет, существует ли username.
@@ -50,8 +51,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Назначение SQL: Подсчитывает количество записей с указанным username.
             // Параметры SQL: ? - Плейсхолдер для username.
             // Параметры PDO: prepare(), execute([$username]), fetchColumn().
-            $stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE username = ?");
-            $stmt->execute([$username]);
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM users WHERE username = ? OR email = ?");
+            $stmt->execute([$username,$email]);
             if ($stmt->fetchColumn() > 0) {
                 $error = "Имя пользователя уже занято.";
             } else {
@@ -63,8 +64,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Назначение SQL: Добавляет нового пользователя с именем и хэшем пароля.
                 // Параметры SQL: ? - Плейсхолдеры для username и password.
                 // Параметры PDO: prepare(), execute([$username, $passwordHash]).
-                $stmt = $pdo->prepare("INSERT INTO users (username, password) VALUES (?, ?)");
-                $stmt->execute([$username, $passwordHash]);
+                $stmt = $pdo->prepare("INSERT INTO users (username, email, password) VALUES (?, ?, ?)");
+                $stmt->execute([$username,$email, $passwordHash]);
                 // Перенаправление: На страницу входа.
                 header("Location: login.php");
                 exit;
@@ -93,6 +94,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <input type="hidden" name="csrf_token" value="<?php echo $_SESSION['csrf_token']; ?>">
         <label for="username">Имя пользователя</label>
         <input type="text" name="username" id="username" required>
+        <label for="email">email</label>
+        <input type="email" name="email" id="email" required>
         <label for="password">Пароль</label>
         <input type="password" name="password" id="password" required>
         <button type="submit">Зарегистрироваться</button>
