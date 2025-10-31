@@ -1,36 +1,26 @@
-# Dockerfile: Конфигурирует контейнер PHP для веб-приложения.
+FROM php:8.3-fpm
 
-# FROM php:8.2-apache
-# Назначение: Указывает базовый образ для контейнера, используя PHP 8.2 с веб-сервером Apache.
-# Параметры: Нет (название и версия образа подразумеваются, здесь php:8.2-apache).
-FROM php:8.2-apache
+# Установка зависимостей
+RUN apt-get update && apt-get install -y \
+    git \
+    libonig-dev \
+    libzip-dev \
+    unzip \
+    && docker-php-ext-install pdo pdo_mysql zip
 
-# WORKDIR /var/www/html
-# Назначение: Устанавливает рабочую директорию /var/www/html внутри контейнера, где выполняются последующие команды.
-# Параметры: Путь (/var/www/html) - директория, в которой будут выполняться команды.
+# Установка Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+# Копирование проекта
 WORKDIR /var/www/html
+COPY . .
 
-# COPY . /var/www/html
-# Назначение: Копирует все файлы из текущей директории хоста (где находится Dockerfile) в /var/www/html контейнера.
-# Параметры: Источник (.) - текущая директория хоста; Цель (/var/www/html) - директория в контейнере.
-COPY . /var/www/html
+# Установка зависимостей Laravel
+RUN composer install --optimize-autoloader --no-dev
 
-# RUN docker-php-ext-install pdo pdo_mysql
-# Назначение: Устанавливает расширения PHP pdo и pdo_mysql для взаимодействия с MySQL через PDO.
-# Параметры: Имена расширений (pdo, pdo_mysql) - расширения, необходимые для работы с базами данных.
-RUN docker-php-ext-install pdo pdo_mysql
-
-# RUN chown -R www-data:www-data /var/www/html
-# Назначение: Рекурсивно меняет владельца директории /var/www/html на www-data (пользователь и группа, используемые Apache).
-# Параметры: -R (рекурсивно); Владелец:Группа (www-data:www-data); Путь (/var/www/html).
+# Права на файлы
 RUN chown -R www-data:www-data /var/www/html
+RUN chmod -R 755 /var/www/html/storage /var/www/html/storage
 
-# RUN chmod -R 755 /var/www/html
-# Назначение: Рекурсивно устанавливает права 755 (владелец: чтение/запись/исполнение; группа/другие: чтение/исполнение) на /var/www/html.
-# Параметры: -R (рекурсивно); Права (755); Путь (/var/www/html).
-RUN chmod -R 755 /var/www/html
-
-# EXPOSE 80
-# Назначение: Указывает, что контейнер будет слушать порт 80 для HTTP-трафика (стандартный порт веб-сервера).
-# Параметры: Номер порта (80) - порт, открытый для внешних подключений.
-EXPOSE 80
+EXPOSE 9000
+# Запуск PHP-FPM
+CMD ["php-fpm"]
